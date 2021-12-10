@@ -1,5 +1,5 @@
 ---
-title: "Fig_Andel_fornoyde_og_depressive_Ungdata"
+title: "Fig_Andel_misfornoyde_og_depressive_Ungdata"
 author: "Steinar Bjørnæs"
 date: "30 11 2021"
 output: 
@@ -47,15 +47,23 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 # Og så er det min tur:
 
-Temafigur FHP-2022: UNGDATA, ANDEL FORNØYDE OG ANDEL MED DEPRESSIVE SYMPTOMER
+Temafigur FHP-2022: UNGDATA, ANDEL MISFORNØYDE OG ANDEL MED DEPRESSIVE SYMPTOMER
 
 Inndata: Kan ikke bruke Ferdig flatfil Indikator.txt. Der er den (ganske hårete) databehandlingen
 av Ungdatatall gjort ferdig, MEN den viser jo ikke tidslinje...
 Scripting gjøres med Git versjonskontroll, med remote repository på Github helseprofil/temafigs2022.
 RStudio vet om det, så jeg kan gi Git-kommandoer i Terminal-vinduet (som i Yusmans prosjekter).
 
+Kategorier:
+- Fornøydhet (Lav, middels, høy): STARTER MED LAV og spør Nora.
+- Depressive symptomer (): 
+- SOES: Starter med <samlet>.
+
+Filer: 
+  - FORNOYDHET_SAMLET_UNGDATA_2021-10-15-11-44    (Foreløpig fil)
+  - DEPRESJON_UNGDATA_2021-01-26-14-53            (Fjorårets)
+  
 I utviklingen: Bruker fjorårets datafiler
-Bruker indikator "Lite fysisk aktive".
 
 
 Spec kommune/bydel:
@@ -72,12 +80,10 @@ Her er det i utgangspunktet ønsket med linjediagram som viser utvikling over ti
 
 FYLKER: Antakelig IKKE AKTUELT, vi bruker ikke Ungdata i fylkesprofiler.
 
-Inndata: Indikator.txt for KOMMUNER/Bydel, der alle tallene er ferdig preppet fram.
-
 Data til label "kommunenavn": Merge på en masterfil med de navnene vi bruker hele veien.
 Styres av "profilaar".
 
-Inndata-filnavnet (som har datotag) ligger som grå minitekst
+Inndata-filnavnet (som har datotag) skal ligge som grå minitekst
 (nederst?) i hjørnet på figurene.
 
 #-------------------------------------------------------------------------------
@@ -93,7 +99,7 @@ library(assertr)
 ```
 
 
-```{r TESTE TING}
+```{r TESTE TING, eval=FALSE}
 ?mpg
 
 # left
@@ -109,6 +115,7 @@ ggplot(data = mpg) +
 
 ```{r Paths-inndata-utdata-og-andre-predefinerte-verdier}
 geonivaa <- "kommune" # Tillatt: "bydel", "kommune"
+profiltype <- "FHP"   # Tillatt: "FHP", "OVP"
 profilaar <- 2022
 pos <- 4            # Figurposisjon øverst s.3 - VERIFISÉR
 
@@ -119,7 +126,7 @@ result_root <- "F:/Forskningsprosjekter/PDB 2455 - Helseprofiler og til_"
 
 geomaster <- paste(result_root, "Masterfiler", profilaar, "Stedsnavn_SSB_TIL_GRAFER_Unicode.csv", sep = "/")
 
-  ## SKARP:
+  ## OLD SKARP:
   # inndatafil <- paste(inndata_root, geonivaa, "Flatfiler/Indikator.txt", sep = "/") 
   # utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geonivaa, "Temafigurer/Fysakt_Ungdata", sep = "/")
   # indik_nr <- 
@@ -133,7 +140,7 @@ inndatafil2 <- paste(result_root, "PRODUKSJON/PRODUKTER/KUBER/KOMMUNEHELSA/DATER
                      "DEPRESJON_UNGDATA_2021-01-26-14-53.csv",
                      sep = "/")
 
-utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geonivaa, "Temafigurer/TEST", sep = "/")
+utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profiltype, profilaar, geonivaa, "Temafigurer/TEST", sep = "/")
 
   # if(geonivaa == "bydel") {
   #   indik_nr <- 19
@@ -150,7 +157,7 @@ utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geoni
 
 
 
-# A) Prøver i Standard-R - kjøres ikke sammen med resten (eval=FALSE)
+# A) Prøver i Standard-R - DETTE ER FOR INDIKATOR.TXT. kjøres ikke sammen med resten (eval=FALSE)
 ```{r Standard-R, eval=FALSE}
 # Preppe data
 ## TAB-separert, desimaltegn er komma. 
@@ -194,63 +201,34 @@ for (i in 1:4) {                                        # Løkke 1:4 for å få 
 
 
 # B) Prøver å gjøre det samme med tidyverse-triksene:
-```{r Data innlesing INDIKATOR.TXT, eval = FALSE}
-## TAB-separert, desimaltegn er komma. 
-## Det ligger "-" for manglende tall, så "Verdi_..."-kolonnene kan bli lest som character. Fikses med "na =".
-## Datotag_... leses som stort tall. Fikses med "col_types...".
-datasett <- readr::read_tsv(inndatafil1, 
-                            col_names = TRUE, 
-                            col_types = cols("Datotag_side4_innfilutfil" = col_character()), 
-                            locale = locale(decimal_mark = ","), 
-                            na = "-")
-```
 
 
 ```{r Data innnlesing KUBEFILER}
 # Kubefiler har semikolon skilletegn, men punktum desimaltegn. Da passer ingen av de tilpassede csv-funksjonene.
 data1 <- readr::read_delim(inndatafil1,
                               delim = ";",
-                              col_names = TRUE)
-```
+                              col_names = TRUE,
+                              col_select = c("GEO", "AAR", "FORNOYD", "SOES", "MEIS" ))
 
-```{r Verifisere-indikator-med-Assertthat, eval=FALSE}
-# Sjekke indikatorteksten: bare les ut en celle, styrt av indik_nr, uten å droppe noe.
-  ## Er det da [[]] brukes, for å aksessere ett element?
+# Droppe unødvendige kategorier og legge inn kolonne Indikator
+data1 <- data1 %>%
+  filter(FORNOYD == "lav_>=1_og_<=2" & SOES == 0) %>%
+  mutate(INDIKATOR = "fornoyd")
 
-  ## Det var ikke så lett - jeg får ikke til siste linje, selve testen med assert_that(). 
-  ## Har prøvd med og uten map(), og med og uten ".$" for å få tak i kolonnen Indikator.
-  ## Bruke [[]] hadde ingen effekt.
-sjekk <- datasett %>% 
-  select(LPnr, Indikator) %>%
-  filter(LPnr == indik_nr)  %>%
-  assert_that(str_starts(.$Indikator[1], "Lite fysisk aktive"))
-  
-```
+data2 <- readr::read_delim(inndatafil2,
+                              delim = ";",
+                              col_names = TRUE,
+                              col_select = c("GEO", "AAR", "DEPRESJON", "SOES", "MEIS" ))
 
-```{r Verifisere-indikator-med-Assertr, eval=FALSE}
-# Fant package assertr, med god veiledning.
-
-# Jeg må ha en "string starter med"-funksjon! Det er jo årstall bak.
-# Denne virker, separat: a får celler med TRUE der teksten stemmer (og FALSE resten).
-# a <- str_starts(datasett$Indikator, "Lite fysisk aktive")
-
-# JEG BRUKER assert's mekanisme for å lage egen sjekkefunksjon og applisere den.
-# str_starts() er fra stringr.
-# (Det stemte ikke at jeg måtte sette output til FALSE når testen IKKE fant feil
-# (med "negate = TRUE" ). Det ble riktig med den intuitive outputen.)
-
-# JEG LEGGER INN DENNE i selve pipeline-chunken.
-
-sjekktekst <- function(x) str_starts(x, indikatortittel)
-
-sjekk <- datasett %>% 
-  select(LPnr, Indikator) %>%
-  filter(LPnr == indik_nr) %>%
-  assert(sjekktekst, Indikator)
+# Droppe unødvendige kategorier og legge inn kolonne Indikator
+data2 <- data2 %>%
+  mutate(INDIKATOR = "depresjon")
 
 ```
+
 
 ```{r Prosessere-data-og-plotte-alt-FORSTE-FORSOK, eval=FALSE}
+### MED INDIKATOR.TXT
 plotdata <- datasett %>%
   filter(LPnr == indik_nr, SpraakId == "BOKMAAL") %>%
   mutate(hjemmeby = str_sub(.$Sted_kode, start = 1, end = 2)) %>%
@@ -279,6 +257,7 @@ LØST problem: Ingen feilmeldinger, og bare grønn markering i margen under kjø
 
 
 ```{r Prosessere-data-og-plotte-én-by-RÅ-GRAF, eval=FALSE}
+### MED INDIKATOR.TXT
 # Dette funker.
 # Når jeg legger på pipe og map() rundt ggplot, kræsjer det med en melding jeg ikke skjønner.
 plotdata <- datasett %>%
@@ -297,6 +276,7 @@ ggplot(plotdata, mapping = aes(x = Sted_kode, y = Verdi_lavesteGeonivaa)) +
 ```
 
 ```{r Plotte_kommune-og-Land-også, eval=FALSE}
+### MED INDIKATOR.TXT
 # Denne fungerer: Lager plott 'by' kommune, med bydelene sortert.
 # Mangler foreløpig geonavnene (til x-aksen) og farger.
 
@@ -353,7 +333,8 @@ plotdata %>%
 ```
 
 
-```{r Geonavn}
+```{r Geonavn, eval=FALSE}
+### MED INDIKATOR.TXT
 # Kopiert fra forrige chunk (som funker men trenger forfining) og videreutviklet.
 # Merge på en Geomaster-fil med navnene. Da må jeg ha riktige geokoder, så trikset med fylkeskode
 # for landstall må legges på etter merge.
