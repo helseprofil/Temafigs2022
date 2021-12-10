@@ -1,7 +1,7 @@
 ---
 title: "Fig_Andel_fornoyde_og_depressive_Ungdata"
 author: "Steinar Bjørnæs"
-date: "22 1 2021"
+date: "30 11 2021"
 output: 
     html_document:
     df_print: paged
@@ -49,21 +49,26 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 Temafigur FHP-2022: UNGDATA, ANDEL FORNØYDE OG ANDEL MED DEPRESSIVE SYMPTOMER
 
-Inndata: Ferdig flatfil Indikator.txt. Der er den (ganske hårete) databehandlingen
-av Ungdatatall gjort ferdig.
+Inndata: Kan ikke bruke Ferdig flatfil Indikator.txt. Der er den (ganske hårete) databehandlingen
+av Ungdatatall gjort ferdig, MEN den viser jo ikke tidslinje...
 Scripting gjøres med Git versjonskontroll, med remote repository på Github helseprofil/temafigs2022.
+RStudio vet om det, så jeg kan gi Git-kommandoer i Terminal-vinduet (som i Yusmans prosjekter).
 
-I utviklingen: Bruker fjorårets Indikator.txt.
-Bruker riktig indikator "Lite fysisk aktive".
-Den er nummer 24 i Kommune og 19 i Bydel i denne testfilen.
+I utviklingen: Bruker fjorårets datafiler
+Bruker indikator "Lite fysisk aktive".
+
 
 Spec kommune/bydel:
-Søyler for hver kommune i fylket.
-Markere aktuell kommune med avvikende farge.
-? Rød/grønn linje for lands- eller fylkes (by-) tall?
-  ## OBS: For Bydel går dette an, men for Kommune vil det som regel være mer
-  ## enn ett av både fylkes- og Landstall i treårsperioden.
-Symbol i grafen og forklaring i Note nedenfor hvis kommunen mangler tall.
+
+Her er det i utgangspunktet ønsket med linjediagram som viser utvikling over tid for kommunen og landet for disse to indikatorene. Eller at landet vises som linjer (de er treårige snitt) og kommunen som prikker der de har gjennomført og at man evt. trekker linjer mellom (oppå) punktene.
+
+<!-- Var spec for opprinnelig figur i dette scriptet: Fys.akt. -->
+<!-- Søyler for hver kommune i fylket. -->
+<!-- Markere aktuell kommune med avvikende farge. -->
+<!-- ? Rød/grønn linje for lands- eller fylkes (by-) tall? -->
+<!--   ## OBS: For Bydel går dette an, men for Kommune vil det som regel være mer -->
+<!--   ## enn ett av både fylkes- og Landstall i treårsperioden. -->
+<!-- Symbol i grafen og forklaring i Note nedenfor hvis kommunen mangler tall. -->
 
 FYLKER: Antakelig IKKE AKTUELT, vi bruker ikke Ungdata i fylkesprofiler.
 
@@ -80,40 +85,64 @@ Inndata-filnavnet (som har datotag) ligger som grå minitekst
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Nødvendige packages
 ## Jeg er i The tidyverse - install.packages("tidyverse") tar inn alt.
+library(assertthat)     # Brukes i standard-R-chunken.
 library(tidyverse)
 library(knitr)
-library(assertthat)     # Brukes i standard-R-chunken.
 library(assertr)
 
 ```
 
+
+```{r TESTE TING}
+?mpg
+
+# left
+ggplot(data = mpg) + 
+  geom_line(mapping = aes(x = displ, y = hwy, colour = drv))
+
+# right
+#ggplot(data = mpg) + 
+#  geom_smooth(mapping = aes(x = displ, y = hwy))
+```
+
+
+
 ```{r Paths-inndata-utdata-og-andre-predefinerte-verdier}
-geonivaa <- "bydel" # Tillatt: "bydel", "kommune"
-profilaar <- 2021
+geonivaa <- "kommune" # Tillatt: "bydel", "kommune"
+profilaar <- 2022
 pos <- 4            # Figurposisjon øverst s.3 - VERIFISÉR
-indikatortittel <- "Lite fysisk aktive"   # Sjekker om teksten starter med dette.
+
+# indikatortittel <- "Lite fysisk aktive"   # Sjekker om teksten starter med dette.
 
 result_root <- "F:/Forskningsprosjekter/PDB 2455 - Helseprofiler og til_"
-inndata_root <- "N:/Helseprofiler_Rapportgenerator/Folkehelseprofiler/Importfiler/PROD"
+# inndata_root <- "N:/Helseprofiler_Rapportgenerator/Folkehelseprofiler/Importfiler/PROD"
 
 geomaster <- paste(result_root, "Masterfiler", profilaar, "Stedsnavn_SSB_TIL_GRAFER_Unicode.csv", sep = "/")
 
-## SKARP:
-# inndatafil <- paste(inndata_root, geonivaa, "Flatfiler/Indikator.txt", sep = "/") 
-# utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geonivaa, "Temafigurer/Fysakt_Ungdata", sep = "/")
-# indik_nr <- 
+  ## SKARP:
+  # inndatafil <- paste(inndata_root, geonivaa, "Flatfiler/Indikator.txt", sep = "/") 
+  # utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geonivaa, "Temafigurer/Fysakt_Ungdata", sep = "/")
+  # indik_nr <- 
 
 ## UTVIKLING:
-inndatafil <- "N:/Helseprofiler_Rapportgenerator/Folkehelseprofiler/Importfiler/PROD/Bydel/Flatfiler/FHP_2020/Indikator.txt"
+    # inndatafil <- "N:/Helseprofiler_Rapportgenerator/Folkehelseprofiler/Importfiler/PROD/Bydel/Flatfiler/FHP_2020/Indikator.txt"
+inndatafil1 <- paste(result_root, "PRODUKSJON/PRODUKTER/KUBER/KOMMUNEHELSA/DATERT/csv",
+                     "FORNOYDHET_SAMLET_UNGDATA_2021-10-15-11-44.csv",
+                     sep = "/")
+inndatafil2 <- paste(result_root, "PRODUKSJON/PRODUKTER/KUBER/KOMMUNEHELSA/DATERT/csv",
+                     "DEPRESJON_UNGDATA_2021-01-26-14-53.csv",
+                     sep = "/")
+
 utdata <- paste(result_root, "PRODUKSJON/PRODUKTER/SSRS_filer", profilaar, geonivaa, "Temafigurer/TEST", sep = "/")
 
-if(geonivaa == "bydel") {
-  indik_nr <- 19
-} else if(geonivaa == "kommune") {
-  indik_nr <- 24
-}
+  # if(geonivaa == "bydel") {
+  #   indik_nr <- 19
+  # } else if(geonivaa == "kommune") {
+  #   indik_nr <- 24
+  # }
 
 ```
+
  I Geomaster-filen ligger: «Sted_kode», string stedskode ned til bydel dvs 6-sifret
  (dvs. geo-numre med ledende null). 
  «Sted», kortversjon av stedsnavn. 
@@ -165,17 +194,24 @@ for (i in 1:4) {                                        # Løkke 1:4 for å få 
 
 
 # B) Prøver å gjøre det samme med tidyverse-triksene:
-```{r Data innlesing}
+```{r Data innlesing INDIKATOR.TXT, eval = FALSE}
 ## TAB-separert, desimaltegn er komma. 
 ## Det ligger "-" for manglende tall, så "Verdi_..."-kolonnene kan bli lest som character. Fikses med "na =".
 ## Datotag_... leses som stort tall. Fikses med "col_types...".
-datasett <- readr::read_tsv(inndatafil, 
+datasett <- readr::read_tsv(inndatafil1, 
                             col_names = TRUE, 
                             col_types = cols("Datotag_side4_innfilutfil" = col_character()), 
                             locale = locale(decimal_mark = ","), 
                             na = "-")
 ```
 
+
+```{r Data innnlesing KUBEFILER}
+# Kubefiler har semikolon skilletegn, men punktum desimaltegn. Da passer ingen av de tilpassede csv-funksjonene.
+data1 <- readr::read_delim(inndatafil1,
+                              delim = ";",
+                              col_names = TRUE)
+```
 
 ```{r Verifisere-indikator-med-Assertthat, eval=FALSE}
 # Sjekke indikatorteksten: bare les ut en celle, styrt av indik_nr, uten å droppe noe.
