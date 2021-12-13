@@ -35,17 +35,20 @@ label values riskfakt riskfakt
 
 * Sette noen parametre
 global ymax = 90
-local yaksetekst "Andel lite fornøyd"
+local yaksetekst "Andel lite fornøyd (prosent)"
 local xaksetekst "Antall risikofaktorer"
 
 * Søylefarge i hht. FHIs webpalett
-local kommunefarge "57 60 97"
-local landsfarge "152 179 39"
+local landsfarge "57 60 97"		//Mørk blå
+local kommunefarge "9 117 181"	//Mellomblå
+ 
+ * Landsfarge sist "152 179 39"
+
 
 
 graph twoway ///
 	(bar andel riskfakt ,		/// 
-	color("`kommunefarge'") barwidth(0.6) 						///
+	color("`landsfarge'") barwidth(0.6) 						///
 	ylabel(0(10)$ymax, angle(horizontal) grid)	///		
 	ytitle("`yaksetekst'", size(medium) orientation(vertical)) ///
 	yscale(range($ymax )) ///  Uten denne får ikke øverste ylabel noen gridline.
