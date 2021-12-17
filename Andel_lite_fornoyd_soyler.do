@@ -35,8 +35,12 @@ label values riskfakt riskfakt
 
 * Sette noen parametre
 global ymax = 90
-local yaksetekst "Andel lite fornøyd (prosent)"
+local yaksetekst "Andel lite fornøyde med livet (skårer 0–5)," "i prosent"
 local xaksetekst "Antall risikofaktorer"
+
+* Avvist forslag:
+*	local tittel "Andel som er lite fornøyde med livet (skårer 0–5)"
+*	local yaksetekst "Prosent"
 
 * Søylefarge i hht. FHIs webpalett
 local landsfarge "57 60 97"		//Mørk blå
