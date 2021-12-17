@@ -45,6 +45,18 @@ plot(pressure)
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # Og så er det min tur:
 
 Temafigur FHP-2022: UNGDATA, ANDEL MISFORNØYDE OG ANDEL MED DEPRESSIVE SYMPTOMER
@@ -203,7 +215,7 @@ for (i in 1:4) {                                        # Løkke 1:4 for å få 
 # B) Prøver å gjøre det samme med tidyverse-triksene:
 
 
-```{r Data innnlesing KUBEFILER}
+```{r Data innnlesing og rydding KUBEFILER}
 # Kubefiler har semikolon skilletegn, men punktum desimaltegn. Da passer ingen av de tilpassede csv-funksjonene.
 data1 <- readr::read_delim(inndatafil1,
                               delim = ";",
@@ -222,12 +234,43 @@ data2 <- readr::read_delim(inndatafil2,
 
 # Droppe unødvendige kategorier og legge inn kolonne Indikator
 data2 <- data2 %>%
+  filter(SOES == 0) %>%
   mutate(INDIKATOR = "depresjon")
+
+# Append til samlet datasett, og rydde
+datasett <- dplyr::bind_rows(data1, data2) %>%
+  select(GEO, AAR, INDIKATOR, MEIS )
+
+# Opprette en landstall-kolonne
+# Må ha tall by AAR og INDIKATOR, samme tall i mange rader.
+# Disse tallene er jo et subset. Jeg skiller dem ut, og joiner dem på!
+landstall <- filter(datasett, GEO == 0) %>%
+  rename(LANDET = MEIS)
+
+# Join får med den ikke-spesifiserte GEO fra begge. Den fra 'landstall' (GEO.y) har 
+# bare "0" hele veien, og kan slettes.
+datasett2 <- left_join(datasett, landstall, by = c("AAR", "INDIKATOR")) %>%
+  select(-"GEO.y")
+
 
 ```
 
 
-```{r Prosessere-data-og-plotte-alt-FORSTE-FORSOK, eval=FALSE}
+```{r Kubefiler-Plott-første-forsøk}
+# Vi skal altså plotte MEIS vs. AAR for to indikatorer, separat for hver GEO:
+#   - tidslinje for landstallene (to linjer)
+#   - punkter for kommunetallene (to rekker)
+
+
+
+```
+
+
+
+
+
+
+```{r INDIKATOR-txt-Prosessere-data-og-plotte-alt-FORSTE-FORSOK, eval=FALSE}
 ### MED INDIKATOR.TXT
 plotdata <- datasett %>%
   filter(LPnr == indik_nr, SpraakId == "BOKMAAL") %>%
@@ -256,7 +299,7 @@ LØST problem: Ingen feilmeldinger, og bare grønn markering i margen under kjø
 ==> HER MÅ JEG BRUKE en kommando for å se dataene rett etter map()! Da fungerte det.
 
 
-```{r Prosessere-data-og-plotte-én-by-RÅ-GRAF, eval=FALSE}
+```{r INDIKATOR-txt-Prosessere-data-og-plotte-én-by-RÅ-GRAF, eval=FALSE}
 ### MED INDIKATOR.TXT
 # Dette funker.
 # Når jeg legger på pipe og map() rundt ggplot, kræsjer det med en melding jeg ikke skjønner.
@@ -275,7 +318,7 @@ ggplot(plotdata, mapping = aes(x = Sted_kode, y = Verdi_lavesteGeonivaa)) +
 
 ```
 
-```{r Plotte_kommune-og-Land-også, eval=FALSE}
+```{r INDIKATOR-txt-Plotte_kommune-og-Land-også, eval=FALSE}
 ### MED INDIKATOR.TXT
 # Denne fungerer: Lager plott 'by' kommune, med bydelene sortert.
 # Mangler foreløpig geonavnene (til x-aksen) og farger.
@@ -333,7 +376,7 @@ plotdata %>%
 ```
 
 
-```{r Geonavn, eval=FALSE}
+```{r INDIKATOR-txt-Geonavn, eval=FALSE}
 ### MED INDIKATOR.TXT
 # Kopiert fra forrige chunk (som funker men trenger forfining) og videreutviklet.
 # Merge på en Geomaster-fil med navnene. Da må jeg ha riktige geokoder, så trikset med fylkeskode
